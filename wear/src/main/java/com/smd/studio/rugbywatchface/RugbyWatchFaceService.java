@@ -22,7 +22,7 @@ import java.util.TimeZone;
 public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
     //TODO Next step in tutorial - https://developer.android.com/training/wearables/watch-faces/information.html
-
+    //                              https://developer.android.com/training/wearables/apps/bt-debugging.html
     //TODO Change launcher icon
     //TODO? Change app name
     //TODO Change @drawable/preview_analog
@@ -88,13 +88,26 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             //TODO Change backgroundPaint with a backgroundDrawable
             //Drawable backgroundDrawable = resources.getDrawable(R.drawable.bg, null);
             //backgroundBitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
+            backgroundPaint = new Paint();
             backgroundPaint.setColor(resources.getColor(R.color.background));
 
             hourPaint = new Paint();
-            hourPaint.setColor(resources.getColor(R.color.hands));
-            hourPaint.setStrokeWidth(resources.getDimension(R.dimen.hand_stroke));
+            hourPaint.setColor(resources.getColor(R.color.hours));
+            hourPaint.setStrokeWidth(resources.getDimension(R.dimen.hours_stroke));
             hourPaint.setAntiAlias(true);
             hourPaint.setStrokeCap(Paint.Cap.ROUND);
+
+            minutePaint = new Paint();
+            minutePaint.setColor(resources.getColor(R.color.minutes));
+            minutePaint.setStrokeWidth(resources.getDimension(R.dimen.minutes_stroke));
+            minutePaint.setAntiAlias(true);
+            minutePaint.setStrokeCap(Paint.Cap.ROUND);
+
+            secondPaint = new Paint();
+            secondPaint.setColor(resources.getColor(R.color.seconds));
+            secondPaint.setStrokeWidth(resources.getDimension(R.dimen.seconds_stroke));
+            secondPaint.setAntiAlias(true);
+            secondPaint.setStrokeCap(Paint.Cap.ROUND);
 
             calendar = Calendar.getInstance();
         }
@@ -142,9 +155,10 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            /* TODO
             if (backgroundScaledBitmap == null || backgroundScaledBitmap.getWidth() != width || backgroundScaledBitmap.getHeight() != height) {
-                backgroundScaledBitmap = Bitmap.createScaledBitmap(backgroundBitmap, width, height, true /* filter */);
-            }
+                backgroundScaledBitmap = Bitmap.createScaledBitmap(backgroundBitmap, width, height, true /* filter * /);
+            } */
             super.onSurfaceChanged(holder, format, width, height);
         }
 
@@ -159,7 +173,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             int width = bounds.width();
             int height = bounds.height();
 
-            canvas.drawBitmap(backgroundScaledBitmap, 0, 0, null);
+            //TODO canvas.drawBitmap(backgroundScaledBitmap, 0, 0, null);
 
             // Find the center. Ignore the window insets so that, on round watches with a "chin",
             // the watch face is centered on the entire screen, not just the usable portion.

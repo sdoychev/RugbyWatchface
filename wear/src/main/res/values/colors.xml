@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="background">#9876aa</color>
-    <color name="hands">#cccccc</color>
+    <color name="hours">#FFFFFF</color>
+    <color name="minutes">#009B48</color>
+    <color name="seconds">#ED2939</color>
 </resources>
