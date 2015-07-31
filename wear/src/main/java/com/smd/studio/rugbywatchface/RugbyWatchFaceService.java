@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
@@ -70,8 +71,16 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         boolean burnInProtection;
         Bitmap backgroundBitmap;
         Bitmap backgroundScaledBitmap;
+        Bitmap hourHandBitmap;
+        //TODO Bitmap hourHandScaledBitmap;
+        Bitmap minuteHandBitmap;
+        //TODO Bitmap minuteHandScaledBitmap;
         Paint hourPaint;
         Paint minutePaint;
+
+        int hourRotationDegree;
+        int minuteRotationDegree;
+
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -90,6 +99,16 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             if (backgroundDrawable != null) {
                 backgroundBitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
             }
+            Drawable hourHandDrawable = resources.getDrawable(R.drawable.hour_hand, null);
+            if (hourHandDrawable != null) {
+                hourHandBitmap = ((BitmapDrawable) hourHandDrawable).getBitmap();
+            }
+            Drawable minuteHandDrawable = resources.getDrawable(R.drawable.minute_hand, null);
+            if (minuteHandDrawable != null) {
+                minuteHandBitmap = ((BitmapDrawable) minuteHandDrawable).getBitmap();
+            }
+            hourRotationDegree = 0;
+            minuteRotationDegree = 0;
 
             hourPaint = new Paint();
             hourPaint.setColor(resources.getColor(R.color.hours));
@@ -102,6 +121,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             minutePaint.setStrokeWidth(resources.getDimension(R.dimen.minutes_stroke));
             minutePaint.setAntiAlias(true);
             minutePaint.setStrokeCap(Paint.Cap.ROUND);
+            minutePaint.setShadowLayer(1.0f, 2.0f, 2.0f, Color.BLACK);
 
             calendar = Calendar.getInstance();
         }
@@ -200,6 +220,21 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             float hrX = (float) Math.sin(hrRot) * hrLength;
             float hrY = (float) -Math.cos(hrRot) * hrLength;
             canvas.drawLine(centerX, centerY, centerX + hrX, centerY + hrY, hourPaint);
+
+            canvas.save(Canvas.MATRIX_SAVE_FLAG);
+            canvas.rotate(hourRotationDegree, centerX, centerY);
+            canvas.drawBitmap(hourHandBitmap, centerX - hourHandBitmap.getWidth(), centerY - hourHandBitmap.getHeight() / 2, null);
+            hourRotationDegree += 15;
+            canvas.restore();
+            canvas.save(Canvas.MATRIX_SAVE_FLAG);
+            canvas.rotate(minuteRotationDegree, centerX, centerY);
+            canvas.drawBitmap(minuteHandBitmap, centerX - minuteHandBitmap.getWidth(), centerY - minuteHandBitmap.getHeight() / 2, null);
+            minuteRotationDegree += 30;
+            canvas.restore();
+            if (hourRotationDegree % 360 == 0)
+                hourRotationDegree = 0;
+            if (minuteRotationDegree % 360 == 0)
+                minuteRotationDegree = 0;
         }
 
         private void updateTimer() {
