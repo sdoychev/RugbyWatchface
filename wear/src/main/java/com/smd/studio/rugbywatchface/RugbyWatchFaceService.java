@@ -9,6 +9,8 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -68,10 +70,8 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         boolean burnInProtection;
         Bitmap backgroundBitmap;
         Bitmap backgroundScaledBitmap;
-        Paint backgroundPaint;
         Paint hourPaint;
         Paint minutePaint;
-        Paint secondPaint;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -85,11 +85,9 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                     .build());
 
             Resources resources = RugbyWatchFaceService.this.getResources();
-            //TODO Change backgroundPaint with a backgroundDrawable
-            //Drawable backgroundDrawable = resources.getDrawable(R.drawable.bg, null);
-            //backgroundBitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
-            backgroundPaint = new Paint();
-            backgroundPaint.setColor(resources.getColor(R.color.background));
+
+            Drawable backgroundDrawable = resources.getDrawable(R.drawable.background, null);
+            backgroundBitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
 
             hourPaint = new Paint();
             hourPaint.setColor(resources.getColor(R.color.hours));
@@ -102,12 +100,6 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             minutePaint.setStrokeWidth(resources.getDimension(R.dimen.minutes_stroke));
             minutePaint.setAntiAlias(true);
             minutePaint.setStrokeCap(Paint.Cap.ROUND);
-
-            secondPaint = new Paint();
-            secondPaint.setColor(resources.getColor(R.color.seconds));
-            secondPaint.setStrokeWidth(resources.getDimension(R.dimen.seconds_stroke));
-            secondPaint.setAntiAlias(true);
-            secondPaint.setStrokeCap(Paint.Cap.ROUND);
 
             calendar = Calendar.getInstance();
         }
@@ -133,7 +125,6 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                 boolean antiAlias = !inAmbientMode;
                 hourPaint.setAntiAlias(antiAlias);
                 minutePaint.setAntiAlias(antiAlias);
-                secondPaint.setAntiAlias(antiAlias);
             }
             invalidate();
             updateTimer();
@@ -155,10 +146,9 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            /* TODO
             if (backgroundScaledBitmap == null || backgroundScaledBitmap.getWidth() != width || backgroundScaledBitmap.getHeight() != height) {
-                backgroundScaledBitmap = Bitmap.createScaledBitmap(backgroundBitmap, width, height, true /* filter * /);
-            } */
+                backgroundScaledBitmap = Bitmap.createScaledBitmap(backgroundBitmap, width, height, true /* filter */);
+            }
             super.onSurfaceChanged(holder, format, width, height);
         }
 
@@ -172,8 +162,6 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
             int width = bounds.width();
             int height = bounds.height();
-
-            //TODO canvas.drawBitmap(backgroundScaledBitmap, 0, 0, null);
 
             // Find the center. Ignore the window insets so that, on round watches with a "chin",
             // the watch face is centered on the entire screen, not just the usable portion.
@@ -193,11 +181,14 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             float minLength = centerX - 40;
             float hrLength = centerX - 80;
 
+            canvas.drawBitmap(backgroundScaledBitmap, 0, 0, null);
+
             // Only draw the second hand in interactive mode.
             if (!isInAmbientMode()) {
                 float secX = (float) Math.sin(secRot) * secLength;
                 float secY = (float) -Math.cos(secRot) * secLength;
-                canvas.drawLine(centerX, centerY, centerX + secX, centerY + secY, secondPaint);
+                //TODO No more seconds hand - only keep to show when in interactive mode
+                // canvas.drawLine(centerX, centerY, centerX + secX, centerY + secY, secondPaint);
             }
 
             // Draw the minute and hour hands.
