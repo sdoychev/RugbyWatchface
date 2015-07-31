@@ -87,7 +87,9 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             Resources resources = RugbyWatchFaceService.this.getResources();
 
             Drawable backgroundDrawable = resources.getDrawable(R.drawable.background, null);
-            backgroundBitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
+            if (backgroundDrawable != null) {
+                backgroundBitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
+            }
 
             hourPaint = new Paint();
             hourPaint.setColor(resources.getColor(R.color.hours));
