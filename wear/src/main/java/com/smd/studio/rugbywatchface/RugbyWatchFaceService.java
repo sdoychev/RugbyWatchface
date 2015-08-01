@@ -25,7 +25,9 @@ import java.util.TimeZone;
 public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
     //TODO Next step in tutorial - https://developer.android.com/training/wearables/watch-faces/information.html
-    //                              https://developer.android.com/training/wearables/apps/bt-debugging.html
+    //Bluetooth debugging           - https://developer.android.com/training/wearables/apps/bt-debugging.html
+    //Santa tracker                 - https://github.com/google/santa-tracker-android/blob/master/app/wearable/src/main/java/com/google/android/apps/santatracker/SantaWatchFaceService.java
+    //Performant watchface          - http://android-developers.blogspot.com/2014/12/making-performant-watch-face.html
     //TODO Change launcher icon
     //TODO? Change app name
     //TODO Change @drawable/preview_analog
@@ -57,6 +59,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                 }
             }
         };
+        //Time reference
         Calendar calendar;
         // receiver to update the time zone
         final BroadcastReceiver timeZoneReceiver = new BroadcastReceiver() {
@@ -66,25 +69,38 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                 invalidate();
             }
         };
+        int currentMinutes;
+        int currentHours;
+        //Watch-specific technical variables
         boolean registeredTimeZoneReceiver = false;
         boolean lowBitAmbient;
         boolean burnInProtection;
+        //Rotations for when drawing the hands
+        float minuteRotation;
+        float hourRotation;
+        //Paints used when drawing
+        Paint handsPaint;
+        Paint ballPaint;
+        //Bitmaps for resources
         Bitmap backgroundBitmap;
         Bitmap backgroundScaledBitmap;
         Bitmap hourHandBitmap;
-        //TODO Bitmap hourHandScaledBitmap;
+        Bitmap hourHandScaledBitmap;
         Bitmap minuteHandBitmap;
-        //TODO Bitmap minuteHandScaledBitmap;
-        Paint hourPaint;
-        Paint minutePaint;
-
-        int hourRotationDegree;
-        int minuteRotationDegree;
-
+        Bitmap minuteHandScaledBitmap;
+        Bitmap ballBitmap;
+        Bitmap ballScaledBitmap;
+        //Watch-specific dimensions variables
+        private int watchWidth;
+        private int watchHeight;
+        private float scale;
+        private float centerX;
+        private float centerY;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
+            init();
 
             // TODO Adjust the system UI to own needs
             setWatchFaceStyle(new WatchFaceStyle.Builder(RugbyWatchFaceService.this)
@@ -92,38 +108,6 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
                     .setShowSystemUiTime(false)
                     .build());
-
-            Resources resources = RugbyWatchFaceService.this.getResources();
-
-            Drawable backgroundDrawable = resources.getDrawable(R.drawable.background, null);
-            if (backgroundDrawable != null) {
-                backgroundBitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
-            }
-            Drawable hourHandDrawable = resources.getDrawable(R.drawable.hour_hand, null);
-            if (hourHandDrawable != null) {
-                hourHandBitmap = ((BitmapDrawable) hourHandDrawable).getBitmap();
-            }
-            Drawable minuteHandDrawable = resources.getDrawable(R.drawable.minute_hand, null);
-            if (minuteHandDrawable != null) {
-                minuteHandBitmap = ((BitmapDrawable) minuteHandDrawable).getBitmap();
-            }
-            hourRotationDegree = 0;
-            minuteRotationDegree = 0;
-
-            hourPaint = new Paint();
-            hourPaint.setColor(resources.getColor(R.color.hours));
-            hourPaint.setStrokeWidth(resources.getDimension(R.dimen.hours_stroke));
-            hourPaint.setAntiAlias(true);
-            hourPaint.setStrokeCap(Paint.Cap.ROUND);
-
-            minutePaint = new Paint();
-            minutePaint.setColor(resources.getColor(R.color.minutes));
-            minutePaint.setStrokeWidth(resources.getDimension(R.dimen.minutes_stroke));
-            minutePaint.setAntiAlias(true);
-            minutePaint.setStrokeCap(Paint.Cap.ROUND);
-            minutePaint.setShadowLayer(1.0f, 2.0f, 2.0f, Color.BLACK);
-
-            calendar = Calendar.getInstance();
         }
 
         @Override
@@ -145,8 +129,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             super.onAmbientModeChanged(inAmbientMode);
             if (lowBitAmbient) {
                 boolean antiAlias = !inAmbientMode;
-                hourPaint.setAntiAlias(antiAlias);
-                minutePaint.setAntiAlias(antiAlias);
+                handsPaint.setAntiAlias(antiAlias);
             }
             invalidate();
             updateTimer();
@@ -168,79 +151,98 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
         @Override
         public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            if (backgroundScaledBitmap == null || backgroundScaledBitmap.getWidth() != width || backgroundScaledBitmap.getHeight() != height) {
-                backgroundScaledBitmap = Bitmap.createScaledBitmap(backgroundBitmap, width, height, true /* filter */);
-            }
             super.onSurfaceChanged(holder, format, width, height);
+            // Get width and height for this watch specifically.
+            watchWidth = width;
+            watchHeight = height;
+            // Find the center. Ignore the window insets so that, on round watches with a "chin",
+            // the watch face is centered on the entire screen, not just the usable portion.
+            centerX = width / 2f;
+            centerY = height / 2f;
+
+            scale = ((float) watchWidth) / (float) backgroundBitmap.getWidth();
+            backgroundScaledBitmap = scaleBitmap(backgroundBitmap, scale);
+            hourHandScaledBitmap = scaleBitmap(hourHandBitmap, scale);
+            minuteHandScaledBitmap = scaleBitmap(minuteHandBitmap, scale);
+            ballScaledBitmap = scaleBitmap(ballBitmap, scale);
         }
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
+
             // Update the time
             calendar.setTimeInMillis(System.currentTimeMillis());
 
-            // Constant to help calculate clock hand rotations
-            final float TWO_PI = (float) Math.PI * 2f;
-
-            int width = bounds.width();
-            int height = bounds.height();
-
-            // Find the center. Ignore the window insets so that, on round watches with a "chin",
-            // the watch face is centered on the entire screen, not just the usable portion.
-            float centerX = width / 2f;
-            float centerY = height / 2f;
-
-            // Compute rotations and lengths for the clock hands.
-            float seconds = calendar.get(Calendar.SECOND) + calendar.get(Calendar.MILLISECOND) / 1000f;
-            float secRot = seconds / 60f * TWO_PI;
-            float minutes = calendar.get(Calendar.MINUTE) + seconds / 60f;
-            float minRot = minutes / 60f * TWO_PI;
-            float hours = calendar.get(Calendar.HOUR) + minutes / 60f;
-            float hrRot = hours / 12f * TWO_PI;
-
-            //TODO check the hardcoded values 20, 40 and 80
-            float secLength = centerX - 20;
-            float minLength = centerX - 40;
-            float hrLength = centerX - 80;
-
+            // Draw the background first
             canvas.drawBitmap(backgroundScaledBitmap, 0, 0, null);
-
-            // Only draw the second hand in interactive mode.
             if (!isInAmbientMode()) {
-                float secX = (float) Math.sin(secRot) * secLength;
-                float secY = (float) -Math.cos(secRot) * secLength;
-                //TODO No more seconds hand - only keep to show when in interactive mode
-                // canvas.drawLine(centerX, centerY, centerX + secX, centerY + secY, secondPaint);
+                //TODO Draw what's needed when in interactive mode
             }
 
-            // Draw the minute and hour hands.
-            float minX = (float) Math.sin(minRot) * minLength;
-            float minY = (float) -Math.cos(minRot) * minLength;
-            canvas.drawLine(centerX, centerY, centerX + minX, centerY + minY, minutePaint);
-            float hrX = (float) Math.sin(hrRot) * hrLength;
-            float hrY = (float) -Math.cos(hrRot) * hrLength;
-            canvas.drawLine(centerX, centerY, centerX + hrX, centerY + hrY, hourPaint);
+            // Draw the hands then, minutes first, then hours
+            canvas.save();
+            currentMinutes = calendar.get(Calendar.MINUTE);
+            currentHours = calendar.get(Calendar.HOUR);
+            minuteRotation = currentMinutes * 6;
+            hourRotation = ((currentHours + (currentMinutes / 60f)) * 30);
+            canvas.rotate(minuteRotation, centerX, centerY);
+            canvas.drawBitmap(minuteHandScaledBitmap, centerX - minuteHandScaledBitmap.getWidth() / 2f, centerY - minuteHandScaledBitmap.getHeight(), handsPaint);
+            canvas.rotate(360 - minuteRotation + hourRotation, centerX, centerY);
+            canvas.drawBitmap(hourHandScaledBitmap, centerX - hourHandScaledBitmap.getWidth() / 2f, centerY - hourHandScaledBitmap.getHeight(), handsPaint);
+            canvas.restore();
 
-            canvas.save(Canvas.MATRIX_SAVE_FLAG);
-            canvas.rotate(hourRotationDegree, centerX, centerY);
-            canvas.drawBitmap(hourHandBitmap, centerX - hourHandBitmap.getWidth(), centerY - hourHandBitmap.getHeight() / 2, null);
-            hourRotationDegree += 15;
-            canvas.restore();
-            canvas.save(Canvas.MATRIX_SAVE_FLAG);
-            canvas.rotate(minuteRotationDegree, centerX, centerY);
-            canvas.drawBitmap(minuteHandBitmap, centerX - minuteHandBitmap.getWidth(), centerY - minuteHandBitmap.getHeight() / 2, null);
-            minuteRotationDegree += 30;
-            canvas.restore();
-            if (hourRotationDegree % 360 == 0)
-                hourRotationDegree = 0;
-            if (minuteRotationDegree % 360 == 0)
-                minuteRotationDegree = 0;
+            // Draw rugby ball on top of hands
+            canvas.drawBitmap(ballScaledBitmap, centerX - ballScaledBitmap.getWidth() / 2f, centerY - ballScaledBitmap.getHeight() / 2f, ballPaint);
         }
 
         private void updateTimer() {
             updateTimeHandler.removeMessages(MSG_UPDATE_TIME);
             if (shouldTimerBeRunning()) {
                 updateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
+            }
+        }
+
+        private void init() {
+            calendar = Calendar.getInstance();
+            currentMinutes = 0;
+            currentHours = 0;
+            minuteRotation = 0f;
+            hourRotation = 0f;
+            watchWidth = -1;
+            watchHeight = -1;
+            Resources resources = RugbyWatchFaceService.this.getResources();
+            Drawable backgroundDrawable = resources.getDrawable(R.drawable.background, null);
+            if (backgroundDrawable != null) {
+                backgroundBitmap = ((BitmapDrawable) backgroundDrawable).getBitmap();
+            }
+            Drawable hourHandDrawable = resources.getDrawable(R.drawable.hour_hand, null);
+            if (hourHandDrawable != null) {
+                hourHandBitmap = ((BitmapDrawable) hourHandDrawable).getBitmap();
+            }
+            Drawable minuteHandDrawable = resources.getDrawable(R.drawable.minute_hand, null);
+            if (minuteHandDrawable != null) {
+                minuteHandBitmap = ((BitmapDrawable) minuteHandDrawable).getBitmap();
+            }
+            Drawable ballDrawable = resources.getDrawable(R.drawable.ball, null);
+            if (ballDrawable != null) {
+                ballBitmap = ((BitmapDrawable) ballDrawable).getBitmap();
+            }
+            handsPaint = new Paint();
+            handsPaint.setShadowLayer(1.0f, 2.0f, 2.0f, Color.BLACK);
+            handsPaint.setAntiAlias(true);
+            handsPaint.setFilterBitmap(true);
+            ballPaint = new Paint();
+            ballPaint.setShadowLayer(1.0f, 2.0f, 2.0f, Color.BLACK);
+            ballPaint.setFilterBitmap(true);
+        }
+
+        private Bitmap scaleBitmap(Bitmap bitmap, float scale) {
+            int width = (int) ((float) bitmap.getWidth() * scale);
+            int height = (int) ((float) bitmap.getHeight() * scale);
+            if (bitmap.getWidth() != width || bitmap.getHeight() != height) {
+                return Bitmap.createScaledBitmap(bitmap, width, height, true /* filter */);
+            } else {
+                return bitmap;
             }
         }
 
@@ -265,5 +267,4 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             RugbyWatchFaceService.this.unregisterReceiver(timeZoneReceiver);
         }
     }
-
 }

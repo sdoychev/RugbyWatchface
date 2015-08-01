@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="hours_stroke">5dp</dimen>
-    <dimen name="minutes_stroke">3dp</dimen>
-    <dimen name="seconds_stroke">1dp</dimen>
+    <dimen name="hands_stroke">5dp</dimen>
 </resources>
