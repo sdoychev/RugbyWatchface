@@ -98,6 +98,14 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         Bitmap ballScaledBitmap;
         Bitmap cupBitmap;
         Bitmap cupScaledBitmap;
+        Bitmap backgroundAmbientBitmap;
+        Bitmap backgroundScaledAmbientBitmap;
+        Bitmap hourHandAmbientBitmap;
+        Bitmap hourHandScaledAmbientBitmap;
+        Bitmap minuteHandAmbientBitmap;
+        Bitmap minuteHandScaledAmbientBitmap;
+        Bitmap ballAmbientBitmap;
+        Bitmap ballScaledAmbientBitmap;
         //Watch-specific dimensions variables
         private int watchWidth;
         private int watchHeight;
@@ -175,10 +183,13 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             minuteHandScaledBitmap = scaleBitmap(minuteHandBitmap, scale);
             ballScaledBitmap = scaleBitmap(ballBitmap, scale);
             cupScaledBitmap = scaleBitmap(cupBitmap, scale);
+            backgroundScaledAmbientBitmap = scaleBitmap(backgroundAmbientBitmap, scale);
+            hourHandScaledAmbientBitmap = scaleBitmap(hourHandAmbientBitmap, scale);
+            minuteHandScaledAmbientBitmap = scaleBitmap(minuteHandAmbientBitmap, scale);
+            ballScaledAmbientBitmap = scaleBitmap(ballAmbientBitmap, scale);
             daysLeftSize = getResources().getDimension(R.dimen.days_left_size);
             scaledDaysLeftText = daysLeftSize * scale;
             daysPaint.setTextSize(scaledDaysLeftText);
-
         }
 
         @Override
@@ -187,34 +198,55 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             // Update the time
             calendar.setTimeInMillis(System.currentTimeMillis());
 
-            // Draw the background first
-            canvas.drawBitmap(backgroundScaledBitmap, 0, 0, null);
             if (!isInAmbientMode()) {
-                // Draw what's needed when in interactive mode
-                String daysLeftString = "" + daysLeft;
-                if (daysLeft < 10) {
-                    daysLeftString = " " + daysLeft;
-                }
-                canvas.drawBitmap(cupScaledBitmap, centerX - cupScaledBitmap.getWidth() / 2f, centerY + cupScaledBitmap.getHeight() / 2.5f, cupPaint);
-                canvas.drawText(daysLeftString, centerX - scaledDaysLeftText / 2, centerY + watchHeight / 4.25f, daysPaint);
-
-                //TODO Make everything black and white
+                // Interactive mode
+                // Draw the background first
+                drawBackground(canvas, backgroundScaledBitmap);
+                // Draw the cup and remaining days
+                drawCupAndDays(canvas, cupScaledBitmap);
+                // Draw the hands, minutes first, then hours
+                drawHands(canvas, minuteHandScaledBitmap, hourHandScaledBitmap);
+                // Draw rugby ball on top of hands
+                drawBall(canvas, ballScaledBitmap);
+            } else {
+                // Ambient mode
+                // Draw the background first
+                drawBackground(canvas, backgroundScaledAmbientBitmap);
+                // Draw the hands, minutes first, then hours
+                drawHands(canvas, minuteHandScaledAmbientBitmap, hourHandScaledAmbientBitmap);
+                // Draw rugby ball on top of hands
+                drawBall(canvas, ballScaledAmbientBitmap);
             }
+        }
 
-            // Draw the hands, minutes first, then hours
+        private void drawBackground(Canvas canvas, Bitmap backgroundBitmap) {
+            canvas.drawBitmap(backgroundBitmap, 0, 0, null);
+        }
+
+        private void drawCupAndDays(Canvas canvas, Bitmap cupBitmap) {
+            String daysLeftString = "" + daysLeft;
+            if (daysLeft < 10) {
+                daysLeftString = " " + daysLeft;
+            }
+            canvas.drawBitmap(cupBitmap, centerX - cupBitmap.getWidth() / 2f, centerY + cupBitmap.getHeight() / 2.5f, cupPaint);
+            canvas.drawText(daysLeftString, centerX - scaledDaysLeftText / 2, centerY + watchHeight / 4.25f, daysPaint);
+        }
+
+        private void drawHands(Canvas canvas, Bitmap minuteHandBitmap, Bitmap hourHandBitmap) {
             canvas.save();
             currentMinutes = calendar.get(Calendar.MINUTE);
             currentHours = calendar.get(Calendar.HOUR);
             minuteRotation = currentMinutes * 6;
             hourRotation = ((currentHours + (currentMinutes / 60f)) * 30);
             canvas.rotate(minuteRotation, centerX, centerY);
-            canvas.drawBitmap(minuteHandScaledBitmap, centerX - minuteHandScaledBitmap.getWidth() / 2f, centerY - minuteHandScaledBitmap.getHeight(), handsPaint);
+            canvas.drawBitmap(minuteHandBitmap, centerX - minuteHandBitmap.getWidth() / 2f, centerY - minuteHandBitmap.getHeight(), handsPaint);
             canvas.rotate(360 - minuteRotation + hourRotation, centerX, centerY);
-            canvas.drawBitmap(hourHandScaledBitmap, centerX - hourHandScaledBitmap.getWidth() / 2f, centerY - hourHandScaledBitmap.getHeight(), handsPaint);
+            canvas.drawBitmap(hourHandBitmap, centerX - hourHandBitmap.getWidth() / 2f, centerY - hourHandBitmap.getHeight(), handsPaint);
             canvas.restore();
+        }
 
-            // Draw rugby ball on top of hands
-            canvas.drawBitmap(ballScaledBitmap, centerX - ballScaledBitmap.getWidth() / 2f, centerY - ballScaledBitmap.getHeight() / 2f, ballPaint);
+        private void drawBall(Canvas canvas, Bitmap ballBitmap) {
+            canvas.drawBitmap(ballBitmap, centerX - ballBitmap.getWidth() / 2f, centerY - ballBitmap.getHeight() / 2f, ballPaint);
         }
 
         private void updateTimer() {
@@ -254,6 +286,22 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             Drawable cupDrawable = resources.getDrawable(R.drawable.cup, null);
             if (cupDrawable != null) {
                 cupBitmap = ((BitmapDrawable) cupDrawable).getBitmap();
+            }
+            Drawable backgroundAmbientDrawable = resources.getDrawable(R.drawable.background_ambient, null);
+            if (backgroundAmbientDrawable != null) {
+                backgroundAmbientBitmap = ((BitmapDrawable) backgroundAmbientDrawable).getBitmap();
+            }
+            Drawable hourHandAmbientDrawable = resources.getDrawable(R.drawable.hour_hand_ambient, null);
+            if (hourHandAmbientDrawable != null) {
+                hourHandAmbientBitmap = ((BitmapDrawable) hourHandAmbientDrawable).getBitmap();
+            }
+            Drawable minuteHandAmbientDrawable = resources.getDrawable(R.drawable.minute_hand_ambient, null);
+            if (minuteHandAmbientDrawable != null) {
+                minuteHandAmbientBitmap = ((BitmapDrawable) minuteHandAmbientDrawable).getBitmap();
+            }
+            Drawable ballAmbientDrawable = resources.getDrawable(R.drawable.ball_ambient, null);
+            if (ballAmbientDrawable != null) {
+                ballAmbientBitmap = ((BitmapDrawable) ballAmbientDrawable).getBitmap();
             }
             handsPaint = new Paint();
             handsPaint.setAntiAlias(true);
