@@ -17,19 +17,18 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.view.Gravity;
 import android.view.SurfaceHolder;
 
+import org.joda.time.DateTime;
+import org.joda.time.Days;
+
 import java.util.Calendar;
+import java.util.Date;
 import java.util.TimeZone;
 
 public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
-    //TODO Next step in tutorial - https://developer.android.com/training/wearables/watch-faces/information.html
-    //Bluetooth debugging           - https://developer.android.com/training/wearables/apps/bt-debugging.html
-    //Santa tracker                 - https://github.com/google/santa-tracker-android/blob/master/app/wearable/src/main/java/com/google/android/apps/santatracker/SantaWatchFaceService.java
-    //Performant watchface          - http://android-developers.blogspot.com/2014/12/making-performant-watch-face.html
-    //TODO Change launcher icon
-    //TODO? Change app name
     //TODO Change @drawable/preview_analog
     //TODO Change @drawable/preview_analog_circular
 
@@ -42,8 +41,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
         static final int MSG_UPDATE_TIME = 0;
         static final int INTERACTIVE_UPDATE_RATE_MS = 1000;
-        // handler to update the time once a second in interactive mode
-        //TODO memory leak?
+        //Handler to update the time once a second in interactive mode
         final Handler updateTimeHandler = new Handler() {
             @Override
             public void handleMessage(Message message) {
@@ -61,7 +59,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         };
         //Time reference
         Calendar calendar;
-        // receiver to update the time zone
+        //Receiver to update the time zone
         final BroadcastReceiver timeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -81,6 +79,14 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         //Paints used when drawing
         Paint handsPaint;
         Paint ballPaint;
+        Paint cupPaint;
+        Paint daysPaint;
+        //Dates for calculations
+        Date rwcStartDate;
+        int daysLeft;
+        //Text sizes
+        float daysLeftSize;
+        float scaledDaysLeftText;
         //Bitmaps for resources
         Bitmap backgroundBitmap;
         Bitmap backgroundScaledBitmap;
@@ -90,6 +96,8 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         Bitmap minuteHandScaledBitmap;
         Bitmap ballBitmap;
         Bitmap ballScaledBitmap;
+        Bitmap cupBitmap;
+        Bitmap cupScaledBitmap;
         //Watch-specific dimensions variables
         private int watchWidth;
         private int watchHeight;
@@ -102,11 +110,13 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             super.onCreate(holder);
             init();
 
-            // TODO Adjust the system UI to own needs
             setWatchFaceStyle(new WatchFaceStyle.Builder(RugbyWatchFaceService.this)
                     .setCardPeekMode(WatchFaceStyle.PEEK_MODE_SHORT)
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
                     .setShowSystemUiTime(false)
+                    .setStatusBarGravity(Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL)
+                    .setHotwordIndicatorGravity(Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL)
+                    .setViewProtectionMode(WatchFaceStyle.PROTECT_STATUS_BAR | WatchFaceStyle.PROTECT_HOTWORD_INDICATOR)
                     .build());
         }
 
@@ -120,7 +130,6 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         @Override
         public void onTimeTick() {
             super.onTimeTick();
-
             invalidate();
         }
 
@@ -165,6 +174,11 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             hourHandScaledBitmap = scaleBitmap(hourHandBitmap, scale);
             minuteHandScaledBitmap = scaleBitmap(minuteHandBitmap, scale);
             ballScaledBitmap = scaleBitmap(ballBitmap, scale);
+            cupScaledBitmap = scaleBitmap(cupBitmap, scale);
+            daysLeftSize = getResources().getDimension(R.dimen.days_left_size);
+            scaledDaysLeftText = daysLeftSize * scale;
+            daysPaint.setTextSize(scaledDaysLeftText);
+
         }
 
         @Override
@@ -176,10 +190,18 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             // Draw the background first
             canvas.drawBitmap(backgroundScaledBitmap, 0, 0, null);
             if (!isInAmbientMode()) {
-                //TODO Draw what's needed when in interactive mode
+                // Draw what's needed when in interactive mode
+                String daysLeftString = "" + daysLeft;
+                if (daysLeft < 10) {
+                    daysLeftString = " " + daysLeft;
+                }
+                canvas.drawBitmap(cupScaledBitmap, centerX - cupScaledBitmap.getWidth() / 2f, centerY + cupScaledBitmap.getHeight() / 2.5f, cupPaint);
+                canvas.drawText(daysLeftString, centerX - scaledDaysLeftText / 2, centerY + watchHeight / 4.25f, daysPaint);
+
+                //TODO Make everything black and white
             }
 
-            // Draw the hands then, minutes first, then hours
+            // Draw the hands, minutes first, then hours
             canvas.save();
             currentMinutes = calendar.get(Calendar.MINUTE);
             currentHours = calendar.get(Calendar.HOUR);
@@ -204,6 +226,8 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
         private void init() {
             calendar = Calendar.getInstance();
+            rwcStartDate = new Date(115, 8, 18, 19, 0); //The RWC start date is 18 September 2015 19:00 GMT
+            daysLeft = Days.daysBetween(new DateTime(new Date(calendar.getTimeInMillis())), new DateTime(rwcStartDate)).getDays();
             currentMinutes = 0;
             currentHours = 0;
             minuteRotation = 0f;
@@ -227,13 +251,21 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             if (ballDrawable != null) {
                 ballBitmap = ((BitmapDrawable) ballDrawable).getBitmap();
             }
+            Drawable cupDrawable = resources.getDrawable(R.drawable.cup, null);
+            if (cupDrawable != null) {
+                cupBitmap = ((BitmapDrawable) cupDrawable).getBitmap();
+            }
             handsPaint = new Paint();
-            handsPaint.setShadowLayer(1.0f, 2.0f, 2.0f, Color.BLACK);
             handsPaint.setAntiAlias(true);
             handsPaint.setFilterBitmap(true);
             ballPaint = new Paint();
             ballPaint.setShadowLayer(1.0f, 2.0f, 2.0f, Color.BLACK);
             ballPaint.setFilterBitmap(true);
+            cupPaint = new Paint();
+            cupPaint.setFilterBitmap(true);
+            daysPaint = new Paint();
+            daysPaint.setColor(Color.WHITE);
+            daysPaint.setAntiAlias(true);
         }
 
         private Bitmap scaleBitmap(Bitmap bitmap, float scale) {

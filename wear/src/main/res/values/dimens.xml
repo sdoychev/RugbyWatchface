@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="hands_stroke">5dp</dimen>
+    <dimen name="days_left_size">20dp</dimen>
 </resources>
