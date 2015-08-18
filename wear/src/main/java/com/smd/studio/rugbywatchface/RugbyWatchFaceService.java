@@ -84,8 +84,10 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         Paint cupPaint;
         Paint daysPaint;
         //Dates for calculations
-        Date rwcStartDate;
         int daysLeft;
+        Date rwcStartDate;
+        DateTime currentDateTime;
+        DateTime rwcStartDateTime;
         //Text sizes
         float daysLeftSize;
         float scaledDaysLeftText;
@@ -205,6 +207,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                 // Draw the background first
                 drawBackground(canvas, backgroundScaledBitmap);
                 // Draw the cup and remaining days
+                daysLeft = Days.daysBetween(currentDateTime, rwcStartDateTime).getDays();
                 drawCupAndDays(canvas, cupScaledBitmap);
                 // Draw the hands, minutes first, then hours
                 drawHands(canvas, minuteHandScaledBitmap, hourHandScaledBitmap);
@@ -260,8 +263,10 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
         private void init() {
             calendar = Calendar.getInstance();
+            currentDateTime = new DateTime(new Date(calendar.getTimeInMillis()));
             rwcStartDate = new Date(115, 8, 18, 19, 0); //The RWC start date is 18 September 2015 19:00 GMT
-            daysLeft = Days.daysBetween(new DateTime(new Date(calendar.getTimeInMillis())), new DateTime(rwcStartDate)).getDays();
+            rwcStartDateTime = new DateTime(rwcStartDate);
+            daysLeft = Days.daysBetween(currentDateTime, rwcStartDateTime).getDays();
             currentMinutes = 0;
             currentHours = 0;
             minuteRotation = 0f;
