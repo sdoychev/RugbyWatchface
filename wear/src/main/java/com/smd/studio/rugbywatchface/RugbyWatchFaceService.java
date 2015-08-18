@@ -29,8 +29,10 @@ import java.util.TimeZone;
 
 public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
-    //TODO Change @drawable/preview_analog
-    //TODO Change @drawable/preview_analog_circular
+    //TODO Change @drawable/preview_analog.
+    //TODO Fix view on round chin skin watches.
+    //TODO Check view and compatibility with square watches.
+    //TODO Change @drawable/preview_analog_circular.
 
     @Override
     public WatchEngine onCreateEngine() {
