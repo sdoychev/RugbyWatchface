@@ -43,22 +43,6 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
         static final int MSG_UPDATE_TIME = 0;
         static final int INTERACTIVE_UPDATE_RATE_MS = 1000;
-        //Handler to update the time once a second in interactive mode
-        final Handler updateTimeHandler = new Handler() {
-            @Override
-            public void handleMessage(Message message) {
-                switch (message.what) {
-                    case MSG_UPDATE_TIME:
-                        invalidate();
-                        if (shouldTimerBeRunning()) {
-                            long timeMs = System.currentTimeMillis();
-                            long delayMs = INTERACTIVE_UPDATE_RATE_MS - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
-                            updateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
-                        }
-                        break;
-                }
-            }
-        };
         //Time reference
         Calendar calendar;
         //Receiver to update the time zone
@@ -87,6 +71,23 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         int daysLeft;
         Date rwcStartDate;
         DateTime currentDateTime;
+        //Handler to update the time once a second in interactive mode
+        final Handler updateTimeHandler = new Handler() {
+            @Override
+            public void handleMessage(Message message) {
+                switch (message.what) {
+                    case MSG_UPDATE_TIME:
+                        invalidate();
+                        if (shouldTimerBeRunning()) {
+                            long timeMs = System.currentTimeMillis();
+                            long delayMs = INTERACTIVE_UPDATE_RATE_MS - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
+                            updateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
+                            currentDateTime = new DateTime(new Date(calendar.getTimeInMillis()));
+                        }
+                        break;
+                }
+            }
+        };
         DateTime rwcStartDateTime;
         //Text sizes
         float daysLeftSize;
@@ -258,6 +259,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             updateTimeHandler.removeMessages(MSG_UPDATE_TIME);
             if (shouldTimerBeRunning()) {
                 updateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
+                currentDateTime = new DateTime(new Date(calendar.getTimeInMillis()));
             }
         }
 
