@@ -19,6 +19,7 @@ import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
+import android.view.WindowInsets;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -28,10 +29,6 @@ import java.util.Date;
 import java.util.TimeZone;
 
 public class RugbyWatchFaceService extends CanvasWatchFaceService {
-
-    //TODO Fix view on round chin skin watches.
-    //TODO Check view and compatibility with square watches.
-    //TODO Change @drawable/preview_analog.
 
     @Override
     public WatchEngine onCreateEngine() {
@@ -58,6 +55,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         boolean registeredTimeZoneReceiver = false;
         boolean lowBitAmbient;
         boolean burnInProtection;
+        boolean squareWatch;
         //Rotations for when drawing the hands
         float minuteRotation;
         float hourRotation;
@@ -110,6 +108,13 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         Bitmap minuteHandScaledAmbientBitmap;
         Bitmap ballAmbientBitmap;
         Bitmap ballScaledAmbientBitmap;
+        //Floats for bitmaps positioning
+        float ballBitmapLeft;
+        float ballBitmapTop;
+        float cupBitmapLeft;
+        float cupBitmapTop;
+        float daysTextX;
+        float daysTextY;
         //Watch-specific dimensions variables
         private int watchWidth;
         private int watchHeight;
@@ -120,6 +125,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
+
             init();
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(RugbyWatchFaceService.this)
@@ -137,6 +143,14 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             super.onPropertiesChanged(properties);
             lowBitAmbient = properties.getBoolean(PROPERTY_LOW_BIT_AMBIENT, false);
             burnInProtection = properties.getBoolean(PROPERTY_BURN_IN_PROTECTION, false);
+        }
+
+        @Override
+        public void onApplyWindowInsets(WindowInsets insets) {
+            super.onApplyWindowInsets(insets);
+            if (!insets.isRound()) {
+                squareWatch = true;
+            }
         }
 
         @Override
@@ -191,6 +205,20 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             hourHandScaledAmbientBitmap = scaleBitmap(hourHandAmbientBitmap, scale);
             minuteHandScaledAmbientBitmap = scaleBitmap(minuteHandAmbientBitmap, scale);
             ballScaledAmbientBitmap = scaleBitmap(ballAmbientBitmap, scale);
+
+            ballBitmapLeft = centerX - ballScaledBitmap.getWidth() / 2;
+            ballBitmapTop = centerY - ballScaledBitmap.getHeight() / 2;
+            cupBitmapLeft = centerX - cupScaledBitmap.getWidth() / 2;
+            cupBitmapTop = centerY + cupScaledBitmap.getHeight() / 2.5f;
+            daysTextX = centerX - cupScaledBitmap.getWidth() / 4.5f;
+            daysTextY = centerY + watchHeight / 4.25f;
+            //Adjustments for watches with bottom black "chin"
+            if (!squareWatch && (watchWidth != watchHeight)) {
+                ballBitmapTop -= ballScaledBitmap.getHeight() / 3.5f;
+                cupBitmapTop -= cupBitmap.getHeight() / 6;
+                daysTextY -= cupBitmap.getHeight() / 4;
+            }
+
             daysLeftSize = getResources().getDimension(R.dimen.days_left_size);
             scaledDaysLeftText = daysLeftSize * scale;
             daysPaint.setTextSize(scaledDaysLeftText);
@@ -206,13 +234,13 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                 // Interactive mode
                 // Draw the background first
                 drawBackground(canvas, backgroundScaledBitmap);
-                // Draw the cup and remaining days
-                daysLeft = Days.daysBetween(currentDateTime, rwcStartDateTime).getDays();
-                drawCupAndDays(canvas, cupScaledBitmap);
                 // Draw the hands, minutes first, then hours
                 drawHands(canvas, minuteHandScaledBitmap, hourHandScaledBitmap);
                 // Draw rugby ball on top of hands
                 drawBall(canvas, ballScaledBitmap);
+                // Draw the cup and remaining days
+                daysLeft = Days.daysBetween(currentDateTime, rwcStartDateTime).getDays();
+                drawCupAndDays(canvas, cupScaledBitmap);
             } else {
                 // Ambient mode
                 // Draw the background first
@@ -233,8 +261,8 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             if (daysLeft < 10) {
                 daysLeftString = " " + daysLeft;
             }
-            canvas.drawBitmap(cupBitmap, centerX - cupBitmap.getWidth() / 2f, centerY + cupBitmap.getHeight() / 2.5f, cupPaint);
-            canvas.drawText(daysLeftString, centerX - scaledDaysLeftText / 2, centerY + watchHeight / 4.25f, daysPaint);
+            canvas.drawBitmap(cupBitmap, cupBitmapLeft, cupBitmapTop, cupPaint);
+            canvas.drawText(daysLeftString, daysTextX, daysTextY, daysPaint);
         }
 
         private void drawHands(Canvas canvas, Bitmap minuteHandBitmap, Bitmap hourHandBitmap) {
@@ -251,7 +279,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         }
 
         private void drawBall(Canvas canvas, Bitmap ballBitmap) {
-            canvas.drawBitmap(ballBitmap, centerX - ballBitmap.getWidth() / 2f, centerY - ballBitmap.getHeight() / 2f, ballPaint);
+            canvas.drawBitmap(ballBitmap, ballBitmapLeft, ballBitmapTop, ballPaint);
         }
 
         private void updateTimer() {
@@ -265,7 +293,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         private void init() {
             calendar = Calendar.getInstance();
             currentDateTime = new DateTime(new Date(calendar.getTimeInMillis()));
-            rwcStartDate = new Date(115, 8, 18, 19, 0); //The RWC start date is 18 September 2015 19:00 GMT
+            rwcStartDate = new Date(115, 8, 18, 20, 0); //The RWC start date is 18 September 2015 19:00 GMT
             rwcStartDateTime = new DateTime(rwcStartDate);
             daysLeft = Days.daysBetween(currentDateTime, rwcStartDateTime).getDays();
             currentMinutes = 0;
