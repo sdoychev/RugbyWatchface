@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="days_left_size">20dp</dimen>
+    <dimen name="hours_left_size">13dp</dimen>
 </resources>
