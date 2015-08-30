@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
+import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
@@ -58,6 +59,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         boolean lowBitAmbient;
         boolean burnInProtection;
         boolean squareWatch;
+        int tapCode;
         //Rotations for when drawing the hands
         float minuteRotation;
         float hourRotation;
@@ -185,8 +187,10 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         public void onTapCommand(int tapType, int x, int y, long eventTime) {
             super.onTapCommand(tapType, x, y, eventTime);
 
-            //Switch between drawing days and hours left until RWC.
-            drawHours = !drawHours;
+            if (tapCode == tapType) {
+                //Switch between drawing days and hours left until RWC.
+                drawHours = !drawHours;
+            }
         }
 
         @Override
@@ -340,6 +344,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             hourRotation = 0f;
             watchWidth = -1;
             watchHeight = -1;
+            tapCode = WatchFaceService.TAP_TYPE_TOUCH;
             Resources resources = RugbyWatchFaceService.this.getResources();
             Drawable backgroundDrawable = resources.getDrawable(R.drawable.background, null);
             if (backgroundDrawable != null) {
