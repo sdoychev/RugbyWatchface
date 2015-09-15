@@ -110,6 +110,8 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         Bitmap ballScaledBitmap;
         Bitmap cupBitmap;
         Bitmap cupScaledBitmap;
+        Bitmap cupDaysBitmap;
+        Bitmap cupDaysScaledBitmap;
         Bitmap cupHoursBitmap;
         Bitmap cupHoursScaledBitmap;
         Bitmap backgroundAmbientBitmap;
@@ -224,6 +226,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             minuteHandScaledBitmap = scaleBitmap(minuteHandBitmap, scale);
             ballScaledBitmap = scaleBitmap(ballBitmap, scale);
             cupScaledBitmap = scaleBitmap(cupBitmap, scale);
+            cupDaysScaledBitmap = scaleBitmap(cupDaysBitmap, scale);
             cupHoursScaledBitmap = scaleBitmap(cupHoursBitmap, scale);
             backgroundScaledAmbientBitmap = scaleBitmap(backgroundAmbientBitmap, scale);
             hourHandScaledAmbientBitmap = scaleBitmap(hourHandAmbientBitmap, scale);
@@ -232,15 +235,15 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
             ballBitmapLeft = centerX - ballScaledBitmap.getWidth() / 2;
             ballBitmapTop = centerY - ballScaledBitmap.getHeight() / 2;
-            cupBitmapLeft = centerX - cupScaledBitmap.getWidth() / 2;
-            cupBitmapTop = centerY + cupScaledBitmap.getHeight() / 2.5f;
-            textRemainingX = centerX - cupScaledBitmap.getWidth() / 4.5f;
+            cupBitmapLeft = centerX - cupDaysScaledBitmap.getWidth() / 2;
+            cupBitmapTop = centerY + cupDaysScaledBitmap.getHeight() / 2.5f;
+            textRemainingX = centerX - cupDaysScaledBitmap.getWidth() / 4.5f;
             textRemainingY = centerY + watchHeight / 4.25f;
             //Adjustments for watches with bottom black "chin"
             if (!squareWatch && (watchWidth != watchHeight)) {
                 ballBitmapTop -= ballScaledBitmap.getHeight() / 3.5f;
-                cupBitmapTop -= cupBitmap.getHeight() / 6;
-                textRemainingY -= cupBitmap.getHeight() / 4;
+                cupBitmapTop -= cupDaysBitmap.getHeight() / 6;
+                textRemainingY -= cupDaysBitmap.getHeight() / 4;
             }
 
             daysLeftSize = getResources().getDimension(R.dimen.days_left_size);
@@ -265,9 +268,17 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                 daysLeft = Days.daysBetween(currentDateTime, rwcStartDateTime).getDays();
                 hoursLeft = Hours.hoursBetween(currentDateTime, rwcStartDateTime).getHours();
                 if (drawHours) {
-                    drawCupAndHours(canvas, cupHoursScaledBitmap);
+                    if (hoursLeft <= 0) {
+                        drawCupAndHours(canvas, cupScaledBitmap);
+                    } else {
+                        drawCupAndHours(canvas, cupHoursScaledBitmap);
+                    }
                 } else {
-                    drawCupAndDays(canvas, cupScaledBitmap);
+                    if (daysLeft <= 0) {
+                        drawCupAndDays(canvas, cupScaledBitmap);
+                    } else {
+                        drawCupAndDays(canvas, cupDaysScaledBitmap);
+                    }
                 }
                 // Draw the hands, minutes first, then hours
                 drawHands(canvas, minuteHandScaledBitmap, hourHandScaledBitmap);
@@ -375,6 +386,10 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
             Drawable cupDrawable = resources.getDrawable(R.drawable.cup, null);
             if (cupDrawable != null) {
                 cupBitmap = ((BitmapDrawable) cupDrawable).getBitmap();
+            }
+            Drawable cupDaysDrawable = resources.getDrawable(R.drawable.cup_days, null);
+            if (cupDaysDrawable != null) {
+                cupDaysBitmap = ((BitmapDrawable) cupDaysDrawable).getBitmap();
             }
             Drawable cupHoursDrawable = resources.getDrawable(R.drawable.cup_hours, null);
             if (cupHoursDrawable != null) {
