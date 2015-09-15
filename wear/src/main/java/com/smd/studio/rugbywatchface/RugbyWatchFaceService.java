@@ -294,7 +294,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                 daysLeftString = " " + daysLeft;
             }
             canvas.drawBitmap(cupBitmap, cupBitmapLeft, cupBitmapTop, cupPaint);
-            if (daysLeft >= 0) {
+            if (daysLeft > 0) {
                 canvas.drawText(daysLeftString, textRemainingX, textRemainingY, daysPaint);
             }
         }
@@ -311,7 +311,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
                 }
             }
             canvas.drawBitmap(cupBitmap, cupBitmapLeft, cupBitmapTop, cupPaint);
-            if (hoursLeft >= 0) {
+            if (hoursLeft > 0) {
                 canvas.drawText(hoursLeftString, textRemainingX, textRemainingY, hoursPaint);
             }
         }
