@@ -299,8 +299,14 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
 
         private void drawCupAndHours(Canvas canvas, Bitmap cupBitmap) {
             hoursLeftString = "" + hoursLeft;
-            if (hoursLeft < 10) {
-                hoursLeftString = " " + hoursLeft;
+            if (hoursLeft < 100) {
+
+                scaledHoursLeftText = scaledDaysLeftText;
+                hoursPaint.setTextSize(scaledHoursLeftText);
+
+                if (hoursLeft < 10) {
+                    hoursLeftString = " " + hoursLeft;
+                }
             }
             canvas.drawBitmap(cupBitmap, cupBitmapLeft, cupBitmapTop, cupPaint);
             canvas.drawText(hoursLeftString, textRemainingX, textRemainingY, hoursPaint);
