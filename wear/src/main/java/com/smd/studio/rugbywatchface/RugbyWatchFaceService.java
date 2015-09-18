@@ -355,7 +355,7 @@ public class RugbyWatchFaceService extends CanvasWatchFaceService {
         private void init() {
             calendar = Calendar.getInstance();
             currentDateTime = new DateTime(new Date(calendar.getTimeInMillis()));
-            rwcStartDate = new Date(115, 8, 18, 21, 0); //The RWC start date is 18 September 2015 19:00 GMT
+            rwcStartDate = new Date(115, 8, 18, 22, 0); //The RWC start date is 18 September 2015 20:00 GMT
             rwcStartDateTime = new DateTime(rwcStartDate);
             daysLeft = Days.daysBetween(currentDateTime, rwcStartDateTime).getDays();
             hoursLeft = Hours.hoursBetween(currentDateTime, rwcStartDateTime).getHours();
